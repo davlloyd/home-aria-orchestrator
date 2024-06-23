@@ -8,7 +8,7 @@
   <param n="action" t="string"><![CDATA[]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster controller
-Version:        1.0.5
+Version:        1.0.6
 Description:    Through ABX custom objects this script allows for the operational control
                 of TMC clusters. This is structured to be a universal controller for all support platforms
                 in TMC. This includes
@@ -24,6 +24,7 @@ Changelog:
         1.0.3   - changed field phase to status and added provisioner field
         1.0.4   - Added support for getting admin kubeconfig
         1.0.5   - Added vRO action support
+        1.0.6   - Fixed vro action input processing
 """
 
 
@@ -723,9 +724,9 @@ def handler(context, inputs):
     _username = os.environ["username"]
     _password = os.environ["password"]
 
-    _platform = inputs['platform']
-    _managementcluster = inputs['managementcluster']
-    _provisioner = inputs['provisioner']
+    _platform = inputs.get('platform')
+    _managementcluster = inputs.get('managementcluster')
+    _provisioner = inputs.get('provisioner')
 
     _client = TMCClient(hostname=_host, username=_username, password=_password)
 
