@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="form_tmc_inputs" result-type="Array/string" api-version="6.0.0" id="c01bc2f6-9da4-44c8-8dbf-1772c9d32d6e" version="1.0.7" category-name="com.tanzu.tmc">
+<dunes-script-module name="form_tmc_inputs" result-type="Array/string" api-version="6.0.0" id="c01bc2f6-9da4-44c8-8dbf-1772c9d32d6e" version="1.0.8" category-name="com.tanzu.tmc">
   <description><![CDATA[Provides dictionary lists for the request forms ]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="platform" t="string"><![CDATA[]]></param>
@@ -8,7 +8,7 @@
   <param n="action" t="string"><![CDATA[]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster controller
-Version:        1.0.7
+Version:        1.0.8
 Description:    Through ABX custom objects this script allows for the operational control
                 of TMC clusters. This is structured to be a universal controller for all support platforms
                 in TMC. This includes
@@ -26,6 +26,7 @@ Changelog:
         1.0.5   - Added vRO action support
         1.0.6   - Fixed vro action input processing
         1.0.7   - Added management server queries
+        1.0.8   - cleaned up form call identifiers
 """
 
 
@@ -760,21 +761,21 @@ def handler(context, inputs):
     _client = TMCClient(hostname=_host, username=_username, password=_password)
 
     match _action:
-        case "form-getmanagementclusterlist":
+        case "form-managementclusterlist":
             if(_response := _client.getManagementClusterList()) is not None:
                 _outputs = [c["fullName"]["name"] for c in _response]
-        case "form-getclustergrouplist":
+        case "form-clustergrouplist":
             if(_response := _client.getClusterGroupList()) is not None:
                 _outputs = [c["fullName"]["name"] for c in _response]
-        case "form-getclusterlist":
+        case "form-clusterlist":
             if(_response := _client.getClusterList()) is not None:
                 _outputs = [c["fullName"]["name"] for c in _response]
-        case "form-getprovisionerlist":
+        case "form-provisionerlist":
             if (_response := _client.getProvisionerList(_managementcluster)) is not None:        
                 _outputs = [c["fullName"]["name"] for c in _response]
-        case "form-getversionlist":
+        case "form-versionlist":
             _outputs =  _client.getKubernetesReleases(_platform, _managementcluster, _provisioner)
-        case "form-getnodesizelist":
+        case "form-nodesizelist":
             _outputs = _client.getVirtualMachineClasses(_managementcluster, _provisioner)
         case "form-storageclasslist":
             _outputs = _client.getStorageClasses(_platform, _managementcluster, _provisioner)
