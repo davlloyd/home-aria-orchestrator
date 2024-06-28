@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="72f5be6a-04fc-4cb0-b4a5-af07b55167ff" version="1.11.3" category-name="com.tanzu.tmc">
+<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="72f5be6a-04fc-4cb0-b4a5-af07b55167ff" version="1.11.4" category-name="com.tanzu.tmc">
   <description><![CDATA[Unified controller for TMC managed clusters]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="action" t="string"><![CDATA[Action to execute]]></param>
@@ -16,7 +16,7 @@
   <param n="controlplanereplicas" t="string"><![CDATA[Number of control plane nodes (1/3)]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster controller
-Version:        1.11.3
+Version:        1.11.4
 Description:    Through ABX custom objects this script allows for the operational control
                 of TMC clusters. This is structured to be a universal controller for all support platforms
                 in TMC. This includes
@@ -45,7 +45,7 @@ import json, requests, time, rsa, os
 from datetime import timezone, datetime
 from urllib.error import URLError, HTTPError
 
-timeout = 885
+timeout = 1740      # ABX timesout at 900 seconds and Orchestrator at 1800 seconds
 
 
 
@@ -397,9 +397,11 @@ class TMCClient:
         
         if _url is not None: # no platform specified
             if (_response := self.__post(_url, _data)) is not None:
-                return self.waitClusterReady(cluster)
-        else:
-            return None
+                if (_cluster := self.waitClusterReady(cluster)) is not None:
+                    print('Cluster provision successfully completed')
+                    return _cluster
+                    
+        return None
 
 
     # Update existing cluster with TMC
@@ -428,14 +430,15 @@ class TMCClient:
     def waitClusterReady(self, cluster):
         print(f'Waiting for cluster to complete create/update operation')
 
+        _response = None
         _start = time.time() 
         while (time.time() - _start) < timeout:  
             _response = self.getCluster(cluster.Name, cluster.Provisioner, cluster.ManagementCluster)
             _status = _response['status']['phase']
             if _status != "READY": # CREATING, ATTACH_COMPLETE
-                time.sleep(15)  # Sleep for 15 seconds before checking again
+                time.sleep(25)  # Sleep for 15 seconds before checking again
             else:
-                print(f'Cluster ready /n{_response}')
+                print(f'Cluster ready')
                 return _response
 
         print(f'Cluster provisioning timeout exceeded')
@@ -778,8 +781,9 @@ def processClusterResponse(platform, response):
             print('eks to be done')
         case 'aks':
             print('aks to be done')
-
-    return _status
+    
+    _cluster = json.dumps(_status)
+    return _cluster
 
 
 # Handler for vRO Actions
