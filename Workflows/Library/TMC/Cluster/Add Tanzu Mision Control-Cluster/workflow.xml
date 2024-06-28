@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:workflow xmlns:ns2="http://vmware.com/vco/workflow" root-name="item2" object-name="workflow:name=generic" id="5735293e-e3ee-4c06-b5fb-8002ce95f2ca" editor-version="2.0" version="1.10.4" api-version="6.0.0" restartMode="1" resumeFromFailedMode="0">
+<ns2:workflow xmlns:ns2="http://vmware.com/vco/workflow" root-name="item2" object-name="workflow:name=generic" id="5735293e-e3ee-4c06-b5fb-8002ce95f2ca" editor-version="2.0" version="1.11.2" api-version="6.0.0" restartMode="1" resumeFromFailedMode="0">
     <display-name>Add Tanzu Mision Control-Cluster</display-name>
     <description>Create a TMC managed cluster</description>
     <position y="50.0" x="100.0"/>
@@ -27,7 +27,7 @@
         <value encoded="n">cluster-create</value>
     </attrib>
     <attrib name="clusterResponse" type="string">
-        <value encoded="n"/>
+        <value encoded="n"></value>
     </attrib>
     <workflow-item name="item0" type="end" end-mode="0" comparator="0">
         <in-binding/>
@@ -36,9 +36,14 @@
     </workflow-item>
     <workflow-item name="item1" out-name="item0" type="task" comparator="0">
         <display-name>Process Cluster response</display-name>
-        <script encoded="false">const clusterDetails = JSON.parse(clusterResponse)
-const clusterId = clusterDetails["name"]
-resultObj = DynamicTypesManager.getObject("Tanzu Mission Control", "Cluster", clusterId)</script>
+        <script encoded="false">Server.log("Parsing cluster create response: /n " + clusterResponse);
+const clusterDetails = JSON.parse(clusterResponse);
+const clusterId = clusterDetails["name"];
+
+Server.log("Updating object for cluster: " + clusterId);
+resultObj = DynamicTypesManager.getObject("Tanzu Mission Control", "Cluster", clusterId);
+
+Server.log("Everything is happy!");</script>
         <in-binding>
             <bind name="clusterResponse" type="string" export-name="clusterResponse"/>
         </in-binding>
