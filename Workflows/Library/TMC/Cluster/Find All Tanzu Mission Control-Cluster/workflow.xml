@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ns2:workflow xmlns:ns2="http://vmware.com/vco/workflow" root-name="item3" object-name="workflow:name=generic" id="cf60ae05-ca8f-4583-a792-2be32087ec84" editor-version="1.6" version="1.11.1" api-version="6.0.0" allowed-operations="vef" restartMode="0" resumeFromFailedMode="2">
     <display-name>Find All Tanzu Mission Control-Cluster</display-name>
-    <description>Fina all TMC managed clusters controlled via Aria</description>
+    <description>Find all TMC managed clusters controlled via Aria</description>
     <position y="20.0" x="180.0"/>
     <input/>
     <output>
@@ -37,10 +37,14 @@ resultObjs = [];
 
 if (!!clusterList) {
     for (var i = 0; i &lt; clusterList.length; i++) {
-        const clusterId = clusterList[i];
-        Server.log("Checking TMC cluster: " + clusterId);
-        const cluster = DynamicTypesManager.getObject("Tanzu Mission Control", "Cluster", clusterId);
-        resultObjs.push(cluster);
+        var clusterName = clusterList[i];
+        Server.log("Checking TMC cluster: " + clusterName);
+        var cluster = DynamicTypesManager.getObject("Tanzu Mission Control", "Cluster",  clusterName);
+        if (!!cluster) { 
+            resultObjs.push(cluster);
+        } else {
+            Server.log("Cluster object not returned: " + clusterName);
+        }
     }
 }
 Server.log("Total TMC Clusters registered: " + resultObjs.length);
@@ -53,7 +57,7 @@ Server.log("Total TMC Clusters registered: " + resultObjs.length);
                 <description>result objs</description>
             </bind>
         </out-binding>
-        <position y="160.0" x="140.0"/>
+        <position y="160.0" x="160.0"/>
         <environment name="TMC_Env">
             <id>b99336ff-a9be-4329-baf6-b77558c7e5ce</id>
         </environment>
@@ -81,6 +85,6 @@ actionResult = System.getModule("com.tanzu.tmc").form_tmc_inputs(platform,manage
             <bind name="actionResult" type="Array/string" export-name="clusterList"/>
         </out-binding>
         <description>Add a note to the workflow schema.</description>
-        <position y="89.31969619160719" x="146.43989873053573"/>
+        <position y="90.0" x="140.0"/>
     </workflow-item>
 </ns2:workflow>
