@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="72f5be6a-04fc-4cb0-b4a5-af07b55167ff" version="1.11.4" category-name="com.tanzu.tmc">
+<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="72f5be6a-04fc-4cb0-b4a5-af07b55167ff" version="1.11.6" category-name="com.tanzu.tmc">
   <description><![CDATA[Unified controller for TMC managed clusters]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="action" t="string"><![CDATA[Action to execute]]></param>
@@ -16,7 +16,7 @@
   <param n="controlplanereplicas" t="string"><![CDATA[Number of control plane nodes (1/3)]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster controller
-Version:        1.11.4
+Version:        1.11.6
 Description:    Through ABX custom objects this script allows for the operational control
                 of TMC clusters. This is structured to be a universal controller for all support platforms
                 in TMC. This includes
@@ -757,6 +757,7 @@ def processClusterResponse(platform, response):
     _status = {}
     _status['name'] = response['fullName']['name']
     _status['controller'] = response['fullName']['managementClusterName']
+    _status['id'] = response['meta']['uid']
     if 'description' in response['meta']:
         _status['description'] = response['meta']['description']
     else:
@@ -821,7 +822,7 @@ def handler(context, inputs):
                 for _item in _response:
                     outputs.append(processClusterResponse(_platform, _item))
         case "cluster-find":
-            if(_response := _client.getClusterList(clusterName=inputs['id'])) is not None:
+            if(_response := _client.getClusterList(clusterName=inputs['name'])) is not None:
                 outputs = processClusterResponse(_platform, _response[0])
         case "form-managementclusterlist":
             if(_response := _client.getManagementClusterList()) is not None:
