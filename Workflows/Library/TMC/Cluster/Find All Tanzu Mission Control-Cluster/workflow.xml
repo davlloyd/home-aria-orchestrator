@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:workflow xmlns:ns2="http://vmware.com/vco/workflow" root-name="item3" object-name="workflow:name=generic" id="cf60ae05-ca8f-4583-a792-2be32087ec84" editor-version="1.6" version="1.11.1" api-version="6.0.0" allowed-operations="vef" restartMode="0" resumeFromFailedMode="2">
+    <display-name>Find All Tanzu Mission Control-Cluster</display-name>
+    <description>Fina all TMC managed clusters controlled via Aria</description>
+    <position y="20.0" x="180.0"/>
+    <input/>
+    <output>
+        <param name="resultObjs" type="Array/DynamicTypes:Tanzu Mission Control.Cluster">
+            <description>result objs</description>
+        </param>
+    </output>
+    <attrib name="errorCode" type="String">
+        <value encoded="n"/>
+        <description>errorCode</description>
+    </attrib>
+    <attrib name="action" type="string">
+        <value encoded="n">form-clusterlist</value>
+    </attrib>
+    <attrib name="clusterList" type="Array/string">
+        <value encoded="n"/>
+        <description>List of clusters returned from action</description>
+    </attrib>
+    <workflow-item name="item0" type="end" end-mode="0" comparator="0">
+        <in-binding/>
+        <out-binding/>
+        <position y="220.0" x="180.0"/>
+    </workflow-item>
+    <workflow-item name="item1" throw-bind-name="errorCode" type="end" end-mode="1" comparator="0">
+        <in-binding/>
+        <out-binding/>
+        <position y="150.0" x="360.0"/>
+    </workflow-item>
+    <workflow-item name="item2" out-name="item0" catch-name="item1" throw-bind-name="errorCode" type="task" comparator="0">
+        <display-name>Cluster Controller</display-name>
+        <script encoded="false">Server.log("Total TMC Clusters Found: " + clusterList.length);
+resultObjs = [];
+
+if (!!clusterList) {
+    for (var i = 0; i &lt; clusterList.length; i++) {
+        const clusterId = clusterList[i];
+        Server.log("Checking TMC cluster: " + clusterId);
+        const cluster = DynamicTypesManager.getObject("Tanzu Mission Control", "Cluster", clusterId);
+        resultObjs.push(cluster);
+    }
+}
+Server.log("Total TMC Clusters registered: " + resultObjs.length);
+</script>
+        <in-binding>
+            <bind name="clusterList" type="Array/string" export-name="clusterList"/>
+        </in-binding>
+        <out-binding>
+            <bind name="resultObjs" type="Array/DynamicTypes:Tanzu Mission Control.Cluster" export-name="resultObjs">
+                <description>result objs</description>
+            </bind>
+        </out-binding>
+        <position y="160.0" x="140.0"/>
+        <environment name="TMC_Env">
+            <id>b99336ff-a9be-4329-baf6-b77558c7e5ce</id>
+        </environment>
+    </workflow-item>
+    <workflow-item name="item3" out-name="item2" type="task" script-module="com.tanzu.tmc/form_tmc_inputs" comparator="0">
+        <display-name>form_tmc_inputs</display-name>
+        <script encoded="false">//Auto generated script, cannot be modified !
+actionResult = System.getModule("com.tanzu.tmc").form_tmc_inputs(platform,managementcluster,provisioner,action);
+</script>
+        <in-binding>
+            <bind name="platform" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="managementcluster" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="provisioner" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="action" type="string" export-name="action">
+                <description></description>
+            </bind>
+        </in-binding>
+        <out-binding>
+            <bind name="actionResult" type="Array/string" export-name="clusterList"/>
+        </out-binding>
+        <description>Add a note to the workflow schema.</description>
+        <position y="89.31969619160719" x="146.43989873053573"/>
+    </workflow-item>
+</ns2:workflow>
