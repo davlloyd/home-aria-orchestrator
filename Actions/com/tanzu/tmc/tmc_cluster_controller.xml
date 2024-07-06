@@ -1,22 +1,22 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="72f5be6a-04fc-4cb0-b4a5-af07b55167ff" version="1.11.6" category-name="com.tanzu.tmc">
+<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="b02dc848-39b3-4eb8-9a9c-e05e6b6407e2" version="1.12.1" category-name="com.tanzu.tmc">
   <description><![CDATA[Unified controller for TMC managed clusters]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="action" t="string"><![CDATA[Action to execute]]></param>
   <param n="name" t="string"><![CDATA[Name of cluster]]></param>
+  <param n="description" t="string"><![CDATA[Description of cluster]]></param>
   <param n="platform" t="string"><![CDATA[Platform for cluster (tkgs, eks or aks)]]></param>
   <param n="clustergroup" t="string"><![CDATA[Cluster Group to add cluster to]]></param>
-  <param n="description" t="string"><![CDATA[Description of cluster]]></param>
-  <param n="workernodecount" t="string"><![CDATA[Number of worker nodes]]></param>
+  <param n="controller" t="string"><![CDATA[Controller / Management instance for the cluster]]></param>
+  <param n="provisioner" t="string"><![CDATA[the provisioner/namespace to deploy cluster into]]></param>
   <param n="version" t="string"><![CDATA[Kubernetes version]]></param>
   <param n="nodesize" t="string"><![CDATA[The Node size for the clusters]]></param>
   <param n="storageclass" t="string"><![CDATA[Storage type/class to assign to the cluster]]></param>
-  <param n="controller" t="string"><![CDATA[Controller / Management instance for the cluster]]></param>
-  <param n="provisioner" t="string"><![CDATA[the provisioner/namespace to deploy cluster into]]></param>
+  <param n="workernodecount" t="string"><![CDATA[Number of worker nodes]]></param>
   <param n="controlplanereplicas" t="string"><![CDATA[Number of control plane nodes (1/3)]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster controller
-Version:        1.11.6
+Version:        1.12.1
 Description:    Through ABX custom objects this script allows for the operational control
                 of TMC clusters. This is structured to be a universal controller for all support platforms
                 in TMC. This includes
@@ -38,6 +38,7 @@ Changelog:
         1.9.0   - added support for vRO custom object
         1.10.0  - Improved exception handling and logging
         1.11.0  - Changed cluster inout/output for vRO for more specific naming instead of attemtoed generalisation
+        1.12.0  - Improved security controls for cluster access context
 """
 
 
@@ -202,6 +203,8 @@ class TMCClient:
                     return None
         except HTTPError as e:
             print(f'HTTP Error code: {e.code} descripton {e.reason}')
+            if e.close == 409:
+                raise HTTPError("Can not post request as it wold create a conflict", 409)
         except URLError as e:
             print(f'URL Error code: {e.code} descripton {e.reason}')
 
@@ -230,6 +233,8 @@ class TMCClient:
                     return None
         except HTTPError as e:
             print(f'HTTP Error code: {e.code} descripton {e.reason}')
+            if e.close == 409:
+                raise HTTPError("Can not post request as it wold create a conflict", 409)
         except URLError as e:
             print(f'URL Error code: {e.code} descripton {e.reason}')
 
@@ -433,13 +438,13 @@ class TMCClient:
         _response = None
         _start = time.time() 
         while (time.time() - _start) < timeout:  
-            _response = self.getCluster(cluster.Name, cluster.Provisioner, cluster.ManagementCluster)
-            _status = _response['status']['phase']
-            if _status != "READY": # CREATING, ATTACH_COMPLETE
-                time.sleep(25)  # Sleep for 15 seconds before checking again
-            else:
-                print(f'Cluster ready')
-                return _response
+            if (time.time() - _start) < 180: # Giving the clusters 3 minutes before polling progress
+                _response = self.getCluster(cluster.Name, cluster.Provisioner, cluster.ManagementCluster)
+                _status = _response['status']['phase']
+                if _status == "READY": # CREATING, ATTACH_COMPLETE
+                    print(f'Cluster ready')
+                    return _response
+            time.sleep(30)  # Sleep for 30 seconds before checking again
 
         print(f'Cluster provisioning timeout exceeded')
         #raise Exception('Cluster create/update operation timeout exceeded')
@@ -757,7 +762,7 @@ def processClusterResponse(platform, response):
     _status = {}
     _status['name'] = response['fullName']['name']
     _status['controller'] = response['fullName']['managementClusterName']
-    _status['id'] = response['meta']['uid']
+    _status['uid'] = response['meta']['uid']
     if 'description' in response['meta']:
         _status['description'] = response['meta']['description']
     else:
@@ -816,7 +821,7 @@ def handler(context, inputs):
                 outputs = processClusterResponse(_platform, _response)
         case "cluster-delete":
             if(_response := _client.deleteCluster(clusterName=inputs['name'], provisionerName=_provisioner, managementCluster=_managementcluster)) is not None:
-                outputs = processClusterResponse(_platform, _response)
+                outputs = _response
         case "cluster-findall":
             if(_response := _client.getClusterList()) is not None:
                 for _item in _response:
