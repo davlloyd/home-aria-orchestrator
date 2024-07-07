@@ -1,1 +1,0 @@
-{"schema":{"id":{"id":"id","type":{"dataType":"string"},"label":"id"}},"layout":{"pages":[{"id":"page_1","sections":[{"id":"section_1","fields":[{"id":"id","display":"textField","signpostPosition":"right-middle"}]}],"title":"Inputs"}]},"options":{"externalValidations":[]},"itemId":""}
