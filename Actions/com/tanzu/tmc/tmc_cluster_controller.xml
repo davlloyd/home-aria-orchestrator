@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="b02dc848-39b3-4eb8-9a9c-e05e6b6407e2" version="1.12.1" category-name="com.tanzu.tmc">
+<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="b02dc848-39b3-4eb8-9a9c-e05e6b6407e2" version="1.14.0" category-name="com.tanzu.tmc" timeout="2400">
   <description><![CDATA[Unified controller for TMC managed clusters]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="action" t="string"><![CDATA[Action to execute]]></param>
@@ -14,9 +14,11 @@
   <param n="storageclass" t="string"><![CDATA[Storage type/class to assign to the cluster]]></param>
   <param n="workernodecount" t="string"><![CDATA[Number of worker nodes]]></param>
   <param n="controlplanereplicas" t="string"><![CDATA[Number of control plane nodes (1/3)]]></param>
+  <param n="kubeletdisk" t="string"><![CDATA[Size of Kubelet mount disk]]></param>
+  <param n="containerdisk" t="string"><![CDATA[Size of ContainerD mount disk]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster controller
-Version:        1.12.1
+Version:        1.14.0
 Description:    Through ABX custom objects this script allows for the operational control
                 of TMC clusters. This is structured to be a universal controller for all support platforms
                 in TMC. This includes
@@ -39,6 +41,8 @@ Changelog:
         1.10.0  - Improved exception handling and logging
         1.11.0  - Changed cluster inout/output for vRO for more specific naming instead of attemtoed generalisation
         1.12.0  - Improved security controls for cluster access context
+        1.13.0  - Extending clustergroup support to enable control in Orchestrator
+        1.14.0  - Added custom disk sizing
 """
 
 
@@ -46,7 +50,7 @@ import json, requests, time, rsa, os
 from datetime import timezone, datetime
 from urllib.error import URLError, HTTPError
 
-timeout = 1740      # ABX timesout at 900 seconds and Orchestrator at 1800 seconds
+timeout = 2300      # ABX timesout at 900 seconds and Orchestrator at 1800 seconds
 
 
 
@@ -65,6 +69,8 @@ class Cluster:
     FailureDomain = 'zone1'
     Version = 'v1.26.13+vmware.1-fips.1-tkg.3'
     Platform = 'tkgs'
+    KubeletDisk = '20G'
+    ContainerDisk = '20G'
 
 
     def __init__(self, name=None, provisioner=None, clusterGroup=None):
@@ -438,7 +444,7 @@ class TMCClient:
         _response = None
         _start = time.time() 
         while (time.time() - _start) < timeout:  
-            if (time.time() - _start) < 180: # Giving the clusters 3 minutes before polling progress
+            if (time.time() - _start) > 180: # Giving the clusters 3 minutes before polling progress
                 _response = self.getCluster(cluster.Name, cluster.Provisioner, cluster.ManagementCluster)
                 _status = _response['status']['phase']
                 if _status == "READY": # CREATING, ATTACH_COMPLETE
@@ -447,8 +453,7 @@ class TMCClient:
             time.sleep(30)  # Sleep for 30 seconds before checking again
 
         print(f'Cluster provisioning timeout exceeded')
-        #raise Exception('Cluster create/update operation timeout exceeded')
-        return _response   # doing this in the interim to get over the ABX 15 minute timeout constraint
+        raise Exception('Cluster create/update operation timeout exceeded')
 
 
     # Delete specified Cluster 
@@ -562,7 +567,29 @@ class TMCClient:
                                     {
                                         "name": "ntp",
                                         "value": "au.pool.ntp.org"
-                                    }
+                                    },
+                        {
+                            "name": "nodePoolVolumes",
+                            "value": [
+                                {
+                                    "capacity": {
+                                        "storage": cluster.ContainerDisk
+                                    },
+                                    "mountPath": "/var/lib/containerd",
+                                    "name": "containerd",
+                                    "storageClass": "general-usage"
+                                },
+                                {
+                                    "capacity": {
+                                        "storage": cluster.KubeletDisk
+                                    },
+                                    "mountPath": "/var/lib/kubelet",
+                                    "name": "kubelet",
+                                    "storageClass": "general-usage"
+                                }
+                            ]
+                        },
+
                                 ]
                             }
                         }
@@ -591,13 +618,28 @@ class TMCClient:
         else:
             return None
 
-    # get a list of the clustergroups
-    def getClusterGroupList(self):
-        print(f'Getting a list of clustergroups')
-        _url = f'https://{self.__hostname}/v1alpha1/clustergroups?searchScope.name=*'
+
+    # get the specified or a list of the clustergroups
+    def getClusterGroupList(self, clustergroup=None):
+        if clustergroup is None:
+            clustergroup = '*'
+        print(f'Getting a list of clustergroups with name {clustergroup}')
+        _url = f'https://{self.__hostname}/v1alpha1/clustergroups?searchScope.name={clustergroup}'
         if (_response := self.__get(_url)) is not None:
             _response = _response["clusterGroups"]
         return _response
+
+    # Get a list of clusters within a clustergroup
+    def getClusterGroupClusters(self, clustergroup):
+        print(f'Getting a list of clusters within clustergroup: {clustergroup}')
+        
+        _clusterlist = []
+        for _cluster in self.getClusterList():
+            if _cluster['spec']['clusterGroupName'].lower() == clustergroup.lower():
+                _clusterlist.append(_cluster)
+
+        return _clusterlist
+
 
 
     # Get a list of provisioners
@@ -737,6 +779,8 @@ def processInputs(inputs):
     _cluster.NodeSize = inputs['nodesize']
     _cluster.StorageClass = inputs['storageclass']
     _cluster.ControlPlaneReplicas = inputs['controlplanereplicas']
+    _cluster.ContainerDisk = inputs['containerdisk']
+    _cluster.KubeletDisk = inputs['kubeletdisk']
     match (inputs['platform']):
         case 'tkgs':
             print('tkg values processing')
@@ -788,8 +832,21 @@ def processClusterResponse(platform, response):
         case 'aks':
             print('aks to be done')
     
-    _cluster = json.dumps(_status)
-    return _cluster
+    return json.dumps(_status)
+
+
+# Process the response from a clustergroup query
+def processClusterGroupResponse(response):
+    print('Processing clustergroup response')
+    _status = {}
+    _status['name'] = response['fullName']['name']
+    if 'description' in response['meta']:
+        _status['description'] = response['meta']['description']
+    else:
+        _status['description'] = ''
+
+    return json.dumps(_status)
+
 
 
 # Handler for vRO Actions
@@ -800,7 +857,7 @@ def handler(context, inputs):
     print (f"Running orchestrator action: {_action}")
 
     outputs = []
-    _host = os.environ.get("host") or 'tmc.home.tanzu.rocks'
+    _host = os.environ.get("host") or 'tmc.tanzu.rocks'
     _username = os.environ.get("username") or 'david'
     _password = os.environ.get("password") or 'B3ach8um!'
 
@@ -829,6 +886,17 @@ def handler(context, inputs):
         case "cluster-find":
             if(_response := _client.getClusterList(clusterName=inputs['name'])) is not None:
                 outputs = processClusterResponse(_platform, _response[0])
+        case "clustergroup-find":
+            if(_response := _client.getClusterGroupList(inputs['name'])) is not None:
+                outputs.append(processClusterGroupResponse(_response[0]))
+        case "clustergroup-findall":
+            if(_response := _client.getClusterGroupList()) is not None:
+                for _item in _response:
+                    outputs.append(processClusterGroupResponse(_item))
+        case "clustergroup-cluster-list":
+            if(_response := _client.getClusterGroupClusters(inputs['name'])) is not None:
+                for _item in _response:
+                    outputs.append(processClusterResponse(_platform, _item))
         case "form-managementclusterlist":
             if(_response := _client.getManagementClusterList()) is not None:
                 outputs = [c["fullName"]["name"] for c in _response]
