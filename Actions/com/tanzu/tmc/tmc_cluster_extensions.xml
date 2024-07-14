@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="tmc_cluster_extensions" result-type="string" api-version="6.0.0" id="89ba75b3-5a22-48ff-9723-60d8e64d0511" version="1.3.12" category-name="com.tanzu.tmc">
+<dunes-script-module name="tmc_cluster_extensions" result-type="string" api-version="6.0.0" id="89ba75b3-5a22-48ff-9723-60d8e64d0511" version="1.3.13" category-name="com.tanzu.tmc">
   <description><![CDATA[Cluster Extension Actions]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="action" t="string"><![CDATA[]]></param>
@@ -7,7 +7,7 @@
   <param n="provisioner" t="string"><![CDATA[]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster actions controller
-Version:        1.3.12
+Version:        1.3.13
 Description:    Controller for the day 2 actions for the cluster 
 Changelog:      
         1.1.0   - Updated to use kubenernetes module
@@ -186,14 +186,14 @@ class TKGSClient:
                 return _response
             else:
                 if _client.read_cluster_role_binding(name=_name) is None:
-                    return f"Role {_name} already exists"
+                    return {"status":"AlreadyPresent", "comment":"Binding already exists"}
         except ApiException as e:
             print(f'Clusteradmin role binding creation exception caught {e}')
             if _client.read_cluster_role_binding(name=_name) is not None:
-                return f"Role {_name} already exists"
+                return {"status":"AlreadyPresent", "comment":"Binding already exists"}
             else:
                 print("Exception when calling V1ClusterRoleBinding->create_cluster_role_binding: %s\n" % e)
-                return None
+                return {"status":"failed", "comment":f"{e.reason}"}
 
 
     # Get the kubconfig for the specified cluster
@@ -213,7 +213,33 @@ class TKGSClient:
             return None
 
 
+# Get cluster access details
+def getSecurityContexts(client, inputs):
+    _creds = {}
+    _clustername = inputs['name']
+    print(f'Requesting kubeconfig admin for cluster {_clustername}')
+    _provisioner = inputs['provisioner']
+    _accountname = 'token-admin'
+    _namespace = 'kube-system'
+    _creds['cluster'] = _clustername
+    _creds["provisioner"] = _provisioner
+    print(f'Calling Kubeconfig retriever function')
+    if(_kubeconfig := client.getClusterKubeconfig(clustername=_clustername, provisioner=_provisioner)) is not None:
+        _creds['kubeconfig'] = _kubeconfig.kubeconfig_b64
+        _creds['apiurl'] = _kubeconfig.api_url
+    print(f'Calling service account creation function')
+    if(_token := client.createServiceAccount(_kubeconfig, _namespace, _accountname)) is not None:
+        print(f'Calling service account clusterrole binding creation')
+        _creds['serviceaccountnamespace'] = _namespace
+        _creds['serviceaccountname'] = _accountname
+        _creds['serviceaccounttoken'] = _token[0]
+        _creds['serviceaccountcertificate'] = _token[1]
+        _response = client.createClusterRoleBinding(_kubeconfig, _accountname, _namespace, 'cluster-admin')
 
+    if len(_creds) > 0: 
+        return _creds
+    else:
+        return None
 
 
 # Main handler for ABX actions
@@ -271,29 +297,7 @@ def handler(context, inputs):
 
     match _action:
         case "kubeconfig-admin":
-            _creds = {}
-            _clustername = inputs['name']
-            print(f'Requesting kubeconfig admin for cluster {_clustername}')
-            _provisioner = inputs['provisioner']
-            _accountname = 'token-admin'
-            _namespace = 'kube-system'
-            _creds['cluster'] = _clustername
-            _creds["provisioner"] = _provisioner
-            print(f'Calling Kubeconfig retriever function')
-            if(_kubeconfig := _client.getClusterKubeconfig(clustername=_clustername, provisioner=_provisioner)) is not None:
-                _creds['kubeconfig'] = _kubeconfig.kubeconfig_b64
-                _creds['apiurl'] = _kubeconfig.api_url
-            print(f'Calling service account creation function')
-            if(_token := _client.createServiceAccount(_kubeconfig, _namespace, _accountname)) is not None:
-                print(f'Calling service account clusterrole binding creation')
-                _response = _client.createClusterRoleBinding(_kubeconfig, _accountname, _namespace, 'cluster-admin')
-                _creds['serviceaccountnamespace'] = _namespace
-                _creds['serviceaccountname'] = _accountname
-                _creds['serviceaccounttoken'] = _token[0]
-                _creds['serviceaccountcertificate'] = _token[1]
-
-            if len(_creds) > 0: 
-                outputs = _creds
+            outputs = getSecurityContexts(_client, inputs)
 
     print(f'Response complete')
     return json.dumps(outputs)
