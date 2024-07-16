@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:workflow xmlns:ns2="http://vmware.com/vco/workflow" root-name="item1" object-name="workflow:name=generic" id="759072a7-7203-4ade-96ca-3cde62c5a2b1" editor-version="2.0" version="0.1.0" api-version="6.0.0" restartMode="1" resumeFromFailedMode="0">
+    <display-name>Delete AzureDevOps-KubernetesResource</display-name>
+    <position y="50.0" x="100.0"/>
+    <input>
+        <param name="kubernetesresource" type="DynamicTypes:AzureDevOps.KubernetesResource"/>
+    </input>
+    <output>
+        <param name="response" type="string"/>
+    </output>
+    <attrib name="action" type="string">
+        <value encoded="n">resource-delete</value>
+    </attrib>
+    <attrib name="project" type="string">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="environment" type="string">
+        <value encoded="n"/>
+    </attrib>
+    <attrib name="resource" type="string">
+        <value encoded="n"/>
+    </attrib>
+    <workflow-item name="item0" type="end" end-mode="0" comparator="0">
+        <in-binding/>
+        <out-binding/>
+        <position y="50.0" x="560.0"/>
+    </workflow-item>
+    <workflow-item name="item1" out-name="item2" throw-bind-name="" type="task" comparator="0">
+        <display-name>Scriptable task</display-name>
+        <script encoded="false">
+Server.log("Resource Delete- Parsing input values");
+resource = kubernetesresource.name;
+project = kubernetesresource.getProperty('project');
+environment = kubernetesresource.getProperty('environment');
+Server.log("Project: " + project + ", Environment: " + environment + " Resource:" + resource);
+
+</script>
+        <in-binding>
+            <bind name="kubernetesresource" type="DynamicTypes:AzureDevOps.KubernetesResource" export-name="kubernetesresource"/>
+        </in-binding>
+        <out-binding>
+            <bind name="project" type="string" export-name="project"/>
+            <bind name="environment" type="string" export-name="environment"/>
+            <bind name="resource" type="string" export-name="resource"/>
+        </out-binding>
+        <description>Simple task with custom script capability.</description>
+        <position y="60.0" x="180.0"/>
+    </workflow-item>
+    <workflow-item name="item2" out-name="item0" type="task" script-module="com.tanzu.ado/ado_endpoint_controller" comparator="0">
+        <display-name>ado_endpoint_controller</display-name>
+        <script encoded="false">//Auto generated script, cannot be modified !
+actionResult = System.getModule("com.tanzu.ado").ado_endpoint_controller(name,type,apiurl,token,certificate,action,project,environment,description,serviceendpoint,clustername,namespace);
+</script>
+        <in-binding>
+            <bind name="name" type="string" export-name="resource">
+                <description></description>
+            </bind>
+            <bind name="type" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="apiurl" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="token" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="certificate" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="action" type="string" export-name="action">
+                <description></description>
+            </bind>
+            <bind name="project" type="string" export-name="project">
+                <description></description>
+            </bind>
+            <bind name="environment" type="string" export-name="environment">
+                <description></description>
+            </bind>
+            <bind name="description" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="serviceendpoint" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="clustername" type="string" export-name="">
+                <description></description>
+            </bind>
+            <bind name="namespace" type="string" export-name="">
+                <description></description>
+            </bind>
+        </in-binding>
+        <out-binding>
+            <bind name="actionResult" type="string" export-name=""/>
+        </out-binding>
+        <description>controller to delete resource</description>
+        <position y="60.0" x="320.0"/>
+    </workflow-item>
+</ns2:workflow>
