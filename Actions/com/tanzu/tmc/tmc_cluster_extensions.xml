@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="tmc_cluster_extensions" result-type="string" api-version="6.0.0" id="89ba75b3-5a22-48ff-9723-60d8e64d0511" version="1.4.1" category-name="com.tanzu.tmc">
+<dunes-script-module name="tmc_cluster_extensions" result-type="string" api-version="6.0.0" id="89ba75b3-5a22-48ff-9723-60d8e64d0511" version="1.4.2" category-name="com.tanzu.tmc">
   <description><![CDATA[Cluster Extension Actions]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="action" t="string"><![CDATA[]]></param>
@@ -7,7 +7,7 @@
   <param n="provisioner" t="string"><![CDATA[]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster actions controller
-Version:        1.4.1
+Version:        1.4.2
 Description:    Controller for the day 2 actions for the cluster 
 Changelog:      
         1.1.0   - Updated to use kubenernetes module
@@ -48,7 +48,7 @@ class Kubeconfig:
 # Main client for interacting with TKGs Services via Supervisor 
 class TKGSClient:
     __supervisor_url ='https://192.168.4.200:6443'
-    __supervisor_token = 'eyJhbGciOiJSUzI1NiIsImtpZCI6InF1VlFVSmpmMjRUZm0zdThaUmh3RndFY2o2cFpQVU0wOVA1VGpkaFNrUncifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi11c2VyLXNlY3JldCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbi11c2VyIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiMmExMjVlM2UtN2IwYi00ZDRhLTk1OTUtNTZhYmZiMWUzMmE2Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmFkbWluLXVzZXIifQ.sEAAhfII63rv_amPDQxKmbv3ZYa1nREA_3Z_s9_je7WNsM61-8_If7Bfo6839kWA6gHiV5m_soWBDJXyxa5kTEDjgkIu0QCiooSGbEpR0ZqGTjGVttijnyggM8-hok-IAYaahIV4rzW6XI9EAvswM5NSCPQN-SU8DlLPG3-bt0gWJn69_fMtBdl4cuAdaZzVe0gC4tc3G1m7UklRUTtwEijpswZtMgT1wzmxPbcChOoEIHljbvm5uODILD49TTZT62vdIBXuMl51HbN7EQif9sBEF302w72iVEJFPLUdICDP_9pizR3lUMV2eGE_D9idrbd7aVblvdooV_vrPnOk0Q'
+    __supervisor_token = 'eyJhbGciOiJSUzI1NiIsImtpZCI6InR0c2FfZEtYbnBHVjBFcFRXOFc4M1lJNE1OaHJacTQtVXREUWJwU2pLR1EifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJrdWJlLXN5c3RlbSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi11c2VyLXNlY3JldCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJhZG1pbi11c2VyIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiNmExMjQ1ZjQtN2I1Yy00ZTdjLWJjMTItMDc0OTYwMWY3YzM1Iiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50Omt1YmUtc3lzdGVtOmFkbWluLXVzZXIifQ.bc1Ta7Oe1SVu__DfiXSwXAziu4TS3s13JclZGFn9oFtCHFZEDDnW1lRpi1uPyXUeoaigQiV-1DIvr5VvBmbm_CIO7VHqFuLKvXyNIPWkkDIbwJNVa_GkJ2utVTcqbN_l83LjyGl_2GAEnJaJK46sENKbJLAvChiVMCCWA_lFJCspX8RNEFDPfAOSC5FlF3imUgmZWGBUffDDE59ssWeANRQlHV5ng_Ef0yAfU9hzIRpQK-lt4tRpeLgw-BNSOZZ-XAzBnhcFPVRA0ItGirHLnRE-CwpjnLBCb80wRwcpo_F7qURxDB8qwAkS6VpO6H1sOsxdSPFlFfxkqpFEyq4fZw'
 
     # Class initialising method
     def __init__(self, supervisor_url=None, supervisor_token=None):
