@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="b02dc848-39b3-4eb8-9a9c-e05e6b6407e2" version="2.1.0" category-name="com.tanzu.tmc" timeout="2400">
+<dunes-script-module name="tmc_cluster_controller" result-type="string" api-version="6.0.0" id="b02dc848-39b3-4eb8-9a9c-e05e6b6407e2" version="2.2.0" category-name="com.tanzu.tmc" timeout="2400">
   <description><![CDATA[Unified controller for TMC managed clusters]]></description>
   <environment><![CDATA[b99336ff-a9be-4329-baf6-b77558c7e5ce]]></environment>
   <param n="action" t="string"><![CDATA[Action to execute]]></param>
@@ -18,7 +18,7 @@
   <param n="containerdisk" t="string"><![CDATA[Size of ContainerD mount disk]]></param>
   <script encoded="false"><![CDATA["""
 Service:        Tanzu Mission Controller cluster controller
-Version:        2.0.3
+Version:        2.2.0
 Description:    Through ABX custom objects this script allows for the operational control
                 of TMC clusters. This is structured to be a universal controller for all support platforms
                 in TMC. This includes
@@ -46,6 +46,7 @@ Changelog:
         1.15.0  - Extened logging and extended cluster ready determination to include agent health
         2.0.0   - Added support for TMC SaaS
         2.1.0   - Changed authentication url for Broadcom cloud services
+        2.2.0   - Updated clusterclass for VKS to suppoer TKC 1.2
 
 """
 
@@ -570,7 +571,7 @@ class TMCClient:
                             },
                             "topology": {
                                 "version": cluster.Version,
-                                "clusterClass": "tanzukubernetescluster",
+                                "clusterClass": "builtin-generic-v3.2.0",
                                 "controlPlane": {
                                     "class": cluster.NodeSize,
                                     "storageClass": cluster.StorageClass,
